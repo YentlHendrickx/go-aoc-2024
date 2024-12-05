@@ -13,52 +13,110 @@ func main() {
 	var location string = "./input/example.txt"
 
 	precedence, updates := readInputFile(location)
-	// fmt.Println("Precedence: ", precedence)
-	// fmt.Println("\nUpdates: ", updates)
 
-	fmt.Println("PartOne: ", partOne(precedence, updates))
-	// // fmt.Println("PartTwo: ", partTwo(grid))
-	//
+	one, two := solve(precedence, updates)
+	fmt.Println("PartOne: ", one)
+	fmt.Println("PartTwo: ", two)
+
 	fmt.Println("\nInput")
 	location = "./input/input.txt"
 
 	precedence, updates = readInputFile(location)
-	// fmt.Println("Precedence: ", precedence)
-	// fmt.Println("\nUpdates: ", updates)
 
-	fmt.Println("PartOne: ", partOne(precedence, updates))
+	one, two = solve(precedence, updates)
+	fmt.Println("PartOne: ", one)
+	fmt.Println("PartTwo: ", two)
 }
 
-func partOne(prec Precedence, updates []Update) int {
-	var correctUpdates []Update
+func solve(prec Precedence, updates []Update) (int, int) {
+	var one, two int = 0, 0
+
+	correctUpdates, incorrectUpdates := getCorrectIncorrect(prec, updates)
+	one = calculateMiddleSum(correctUpdates)
+
+	two = calculateMiddleSum(correctUpdateSet(prec, incorrectUpdates))
+
+	return one, two
+}
+
+func correctUpdateSet(prec Precedence, updates []Update) []Update {
+	var output []Update
 	for _, update := range updates {
-		correct := true
-		for index, page := range update {
-			if _, ok := prec[page]; ok {
-				curr := prec[page]
-				for i := 0; i < index; i++ {
-					if contains(curr, update[i]) {
-						correct = false
-						break
-					}
-				}
-
+		var currentSet Update = update
+		for {
+			correct, first, second := isCorrectUpdateSet(prec, currentSet)
+			if correct {
+				break
 			}
+
+			// Create new set which is the same as the current set but with the first and second swapped
+			var newSet Update = make(Update, len(currentSet))
+			for index, page := range currentSet {
+				if page == first {
+					newSet[index] = second
+				} else if page == second {
+					newSet[index] = first
+				} else {
+					newSet[index] = page
+				}
+			}
+
+			currentSet = newSet
 		}
 
-		if correct {
-			correctUpdates = append(correctUpdates, update)
-		}
+		output = append(output, currentSet)
 	}
 
-	res := 0
+	return output
+}
 
-	for _, update := range correctUpdates {
+func calculateMiddleSum(updates []Update) int {
+	res := 0
+	for _, update := range updates {
 		middle := len(update) / 2
 		res += update[middle]
 	}
 
 	return res
+}
+
+func getCorrectIncorrect(prec Precedence, updates []Update) ([]Update, []Update) {
+	var correctUpdates []Update
+	var incorrectUpdates []Update
+
+	for _, update := range updates {
+		correct, _, _ := isCorrectUpdateSet(prec, update)
+
+		if correct {
+			correctUpdates = append(correctUpdates, update)
+		} else {
+			incorrectUpdates = append(incorrectUpdates, update)
+		}
+	}
+
+	return correctUpdates, incorrectUpdates
+}
+
+func isCorrectUpdateSet(prec Precedence, update Update) (bool, int, int) {
+	correct := true
+	var first, second int = -1, -1
+
+	for index, page := range update {
+		if _, ok := prec[page]; ok {
+			curr := prec[page]
+			for i := 0; i < index; i++ {
+				if contains(curr, update[i]) {
+					first = update[i]
+					second = page
+					correct = false
+					break
+				}
+			}
+
+		}
+	}
+
+	return correct, first, second
 }
 
 func contains(s []int, e int) bool {
