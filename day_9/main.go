@@ -53,7 +53,15 @@ func squash2(uncompressed []int) []int {
 		kS := sortedSeq[i]
 		vS := uniqueSequences[kS]
 
-		emptySpace := getEmptySpace(uncompressed)
+		kIndex := -1
+		for k := 0; k < len(uncompressed); k++ {
+			if uncompressed[k] == kS {
+				kIndex = k
+				break
+			}
+		}
+
+		emptySpace := getEmptySpace(uncompressed, kIndex)
 		sortedEmpt := slices.Sorted(maps.Keys(emptySpace))
 
 		for j := 0; j < len(sortedEmpt); j++ {
@@ -61,19 +69,6 @@ func squash2(uncompressed []int) []int {
 			eLength := emptySpace[eIndex]
 			if eLength < vS {
 				continue
-			}
-
-			// Find index of kS
-			kIndex := -1
-			for k := 0; k < len(uncompressed); k++ {
-				if uncompressed[k] == kS {
-					kIndex = k
-					break
-				}
-			}
-
-			if eIndex > kIndex {
-				break
 			}
 
 			if eLength >= vS {
@@ -88,7 +83,6 @@ func squash2(uncompressed []int) []int {
 						uncompressed[k] = -1
 					}
 				}
-
 				break
 			}
 		}
@@ -127,11 +121,11 @@ func getUniqueSequences(uncompressed []int) map[int]int {
 	return uniqueSequences
 }
 
-func getEmptySpace(uncompressed []int) map[int]int {
+func getEmptySpace(uncompressed []int, endIndex int) map[int]int {
 	var emptySpace map[int]int = make(map[int]int)
 	var space int = 0
 	var currentStart int = -1
-	for i := 0; i < len(uncompressed); i++ {
+	for i := 0; i < endIndex; i++ {
 		if uncompressed[i] == -1 {
 			space++
 
