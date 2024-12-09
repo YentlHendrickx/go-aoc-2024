@@ -6,6 +6,7 @@ import (
 	"maps"
 	"os"
 	"slices"
+	"time"
 )
 
 func main() {
@@ -26,8 +27,10 @@ func main() {
 	one = solve(diskMap)
 	fmt.Println("PartOne: ", one)
 
+	startTime := time.Now()
 	two = solve2(diskMap)
 	fmt.Println("PartTwo: ", two)
+	fmt.Println("Execution time: ", time.Since(startTime))
 }
 
 func solve(diskMap DiskMap) int {
@@ -48,6 +51,8 @@ func squash2(uncompressed []int) []int {
 
 	sortedSeq := slices.Sorted(maps.Keys(uniqueSequences))
 	slices.Reverse(sortedSeq)
+	emptySpace := getEmptySpace(uncompressed, len(uncompressed)-1)
+	sortedEmpt := slices.Sorted(maps.Keys(emptySpace))
 
 	for i := 0; i < len(sortedSeq); i++ {
 		kS := sortedSeq[i]
@@ -61,13 +66,19 @@ func squash2(uncompressed []int) []int {
 			}
 		}
 
-		emptySpace := getEmptySpace(uncompressed, kIndex)
-		sortedEmpt := slices.Sorted(maps.Keys(emptySpace))
-
 		for j := 0; j < len(sortedEmpt); j++ {
 			eIndex := sortedEmpt[j]
 			eLength := emptySpace[eIndex]
+
+			if kIndex <= eIndex {
+				continue
+			}
+
 			if eLength < vS {
+				continue
+			}
+
+			if eLength <= 0 {
 				continue
 			}
 
@@ -83,11 +94,18 @@ func squash2(uncompressed []int) []int {
 						uncompressed[k] = -1
 					}
 				}
+
+				// Remove empty space from map, add new empty space if needed
+				delete(emptySpace, eIndex)
+				if eLength > vS {
+					emptySpace[eIndex+vS] = eLength - vS
+					sortedEmpt = slices.Sorted(maps.Keys(emptySpace))
+				}
+
 				break
 			}
 		}
 	}
-
 	return uncompressed
 }
 
@@ -144,15 +162,17 @@ func getEmptySpace(uncompressed []int, endIndex int) map[int]int {
 }
 
 func squash(uncompressed []int) []int {
+	var start int = len(uncompressed) - 1
 	for i := 0; i < len(uncompressed); i++ {
 		if uncompressed[i] != -1 {
 			continue
 		}
 
-		for j := len(uncompressed) - 1; j > i; j-- {
+		for j := start; j > i; j-- {
 			if uncompressed[j] != -1 {
 				uncompressed[i] = uncompressed[j]
 				uncompressed[j] = -1
+				start = j
 				break
 			}
 		}
