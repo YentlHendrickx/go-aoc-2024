@@ -31,17 +31,16 @@ func main() {
 	fmt.Println("Example")
 	location := "./input/example.txt"
 	cd := readInputFile(location)
-	fmt.Println("\nExample")
 	one, two := solve(cd)
 	fmt.Println("Part One:", one)
 	fmt.Println("Part Two:", two)
 
-	// fmt.Println("\nInput")
-	// location = "./input/input.txt"
-	// cd = readInputFile(location)
-	// one, two = solve(cd)
-	// fmt.Println("Part One:", one)
-	// fmt.Println("Part Two:", two)
+	fmt.Println("\nInput")
+	location = "./input/input.txt"
+	cd = readInputFile(location)
+	one, two = solve(cd)
+	fmt.Println("Part One:", one)
+	fmt.Println("Part Two:", two)
 }
 
 func solve(gd *btree.BTree) (int, int) {
@@ -125,42 +124,76 @@ func countSides(region []Coordinate, gd *btree.BTree, currentRune rune) int {
 	var corners int
 
 	for _, c := range region {
-		fmt.Println("Checking:", c)
-		corners++
-		// if isCorner(c, gd, currentRune) {
-		// 	corners++
-		// }
+		corners += getCorners(c, gd, currentRune)
 	}
-	fmt.Println("Sides:", corners)
 
 	return corners
 }
 
-func isCorner(c Coordinate, gd *btree.BTree, currentRune rune) bool {
+func getCorners(c Coordinate, gd *btree.BTree, currentRune rune) int {
 	neighbors := []Coordinate{
-		{c.x, c.y - 1}, // Up
-		{c.x, c.y + 1}, // Down
-		{c.x - 1, c.y}, // Left
-		{c.x + 1, c.y}, // Right
+		{c.x, c.y - 1},     // Up
+		{c.x, c.y + 1},     // Down
+		{c.x - 1, c.y},     // Left
+		{c.x + 1, c.y},     // Right
+		{c.x - 1, c.y - 1}, // NW
+		{c.x + 1, c.y - 1}, // NE
+		{c.x - 1, c.y + 1}, // SW
+		{c.x + 1, c.y + 1}, // SE
 	}
 
-	externalSides := 0
-	for _, n := range neighbors {
-		if getRune(gd, n) != currentRune {
-			externalSides++
-		}
+	up := getRune(gd, neighbors[0])
+	down := getRune(gd, neighbors[1])
+	left := getRune(gd, neighbors[2])
+	right := getRune(gd, neighbors[3])
+
+	nw := getRune(gd, neighbors[4])
+	ne := getRune(gd, neighbors[5])
+	sw := getRune(gd, neighbors[6])
+	se := getRune(gd, neighbors[7])
+
+	corners := 0
+	// Top left
+	if up != currentRune && left != currentRune {
+		corners++
 	}
 
-	if externalSides != 2 {
-		return false
+	// Top right
+	if up != currentRune && right != currentRune {
+		corners++
 	}
 
-	up := getRune(gd, Coordinate{c.x, c.y - 1}) != currentRune
-	down := getRune(gd, Coordinate{c.x, c.y + 1}) != currentRune
-	left := getRune(gd, Coordinate{c.x - 1, c.y}) != currentRune
-	right := getRune(gd, Coordinate{c.x + 1, c.y}) != currentRune
+	// Bottom leftt
+	if down != currentRune && left != currentRune {
+		corners++
+	}
 
-	return (up && right) || (right && down) || (down && left) || (left && up)
+	// Bottom right
+	if down != currentRune && right != currentRune {
+		corners++
+	}
+
+	// Bottom left concave
+	if sw != currentRune && left == currentRune && down == currentRune {
+		corners++
+	}
+
+	// Bottom right concave
+	if se != currentRune && right == currentRune && down == currentRune {
+		corners++
+	}
+
+	// Top left concave
+	if nw != currentRune && left == currentRune && up == currentRune {
+		corners++
+	}
+
+	// Top right concave
+	if ne != currentRune && right == currentRune && up == currentRune {
+		corners++
+	}
+
+	return corners
 }
 
 func getRune(gd *btree.BTree, coord Coordinate) rune {
