@@ -1,3 +1,3 @@
-module aoc/day_12
+module aoc/day_13
 
 go 1.23.3
