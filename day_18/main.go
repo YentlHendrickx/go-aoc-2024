@@ -85,7 +85,7 @@ func solve(coordinates []Coordinate, xSize, ySize, byteCount int) map[Coordinate
 		byteCounter++
 	}
 
-	path := dfs(grid, xSize, ySize)
+	path := bfs(grid, xSize, ySize)
 	return path
 }
 
@@ -111,8 +111,8 @@ type Point struct {
 	path    map[Coordinate]bool
 }
 
-func dfs(grid [][]int, xSize, ySize int) map[Coordinate]bool {
-	// Find the shortest path, starting from top left 0,0 to bottom right xSize, ySize. DFS
+func bfs(grid [][]int, xSize, ySize int) map[Coordinate]bool {
+	// Find the shortest path, starting from top left 0,0 to bottom right xSize, ySize. BFS
 	var stack []Point = []Point{{Coordinate{0, 0}, make(map[Coordinate]bool)}}
 	visited := make(map[Coordinate]bool)
 
