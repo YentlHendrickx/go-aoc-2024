@@ -25,10 +25,11 @@ func main() {
 
 func solve(available AvailablePatterns, liked LikedPatterns) (int, int) {
 	var p1, p2 int
+	var memo = make(map[string]int)
 	for pattern := range liked {
 		patt := string(pattern)
 
-		ways := checkPattern(patt, available, make(map[string]int))
+		ways := checkPattern(patt, available, memo)
 		if ways > 0 {
 			p1++
 			p2 += ways
