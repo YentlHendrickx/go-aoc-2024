@@ -8,259 +8,230 @@ import (
 	"strings"
 )
 
-type Coordinate struct {
-	x, y int
-}
-
-var numericPad = map[rune]Coordinate{
-	'7': {0, 0}, '8': {1, 0}, '9': {2, 0},
-	'4': {0, 1}, '5': {1, 1}, '6': {2, 1},
-	'1': {0, 2}, '2': {1, 2}, '3': {2, 2},
-	'0': {1, 3}, 'A': {2, 3},
-}
-
-var directionalPad = map[rune]Coordinate{
-	'^': {1, 0}, 'A': {2, 0},
-	'<': {0, 1}, 'v': {1, 1}, '>': {2, 1},
-}
-
 func main() {
 	fmt.Println("Example")
-	solveBoth("./input/example.txt")
+	solvePart("./input/example.txt")
 
 	fmt.Println("\nInput")
-	solveBoth("./input/input.txt")
+	solvePart("./input/input.txt")
 }
 
-func solveBoth(location string) {
-	fmt.Println("Part 1:", solve(location, 2))
-	fmt.Println("Part 2:", solve(location, 25))
+func solvePart(location string) {
+	fmt.Println("Part 1:", solve(location, 3))
+	fmt.Println("Part 2:", solve(location, 26))
 }
 
-func solve(location string, layers int) int {
-	codes := readInputFile(location)
-	totalComplexity := 0
-	cache := make(map[string][]int)
+func solve(location string, depth int) int {
+	file, _ := os.Open(location)
+	defer file.Close()
 
-	for _, code := range codes {
-		// Get initial sequence for numeric keypad
-		baseSeq := getNumericPadSequence(code)
+	scanner := bufio.NewScanner(file)
+	total := 0
 
-		// Calculate sequence length through all robot layers
-		seqLen := getSequenceLength(baseSeq, layers, 1, cache)
-
-		// Calculate numeric value and complexity
-		numericValue := getNumericValue(code)
-		complexity := seqLen * numericValue
-
-		fmt.Printf("Code: %s, Sequence Length: %d, Numeric Value: %d, Complexity: %d\n",
-			code, seqLen, numericValue, complexity)
-		totalComplexity += complexity
-	}
-
-	return totalComplexity
-}
-
-func getNumericPadSequence(code string) []string {
-	var sequence []string
-	current := Coordinate{2, 3} // Start at 'A'
-
-	for _, target := range code {
-		dest := numericPad[target]
-
-		// Calculate differences
-		diffX := dest.x - current.x
-		diffY := dest.y - current.y
-
-		// Add horizontal movements
-		for i := 0; i < abs(diffX); i++ {
-			if diffX < 0 {
-				sequence = append(sequence, "<")
-			} else {
-				sequence = append(sequence, ">")
-			}
+	for scanner.Scan() {
+		code := strings.TrimSpace(scanner.Text())
+		if code == "" {
+			continue
 		}
 
-		// Add vertical movements
-		for i := 0; i < abs(diffY); i++ {
-			if diffY < 0 {
-				sequence = append(sequence, "v")
-			} else {
-				sequence = append(sequence, "^")
-			}
+		// Extract numeric value
+		numStr := strings.TrimSuffix(code, "A")
+		numStr = strings.TrimLeft(numStr, "0")
+		numValue := 0
+		if numStr != "" {
+			numValue, _ = strconv.Atoi(numStr)
 		}
 
-		// Add button press
-		sequence = append(sequence, "A")
-		current = dest
+		// Calculate sequence length
+		seqLen := solveString(code, depth)
+		total += seqLen * numValue
 	}
 
-	// Return to 'A'
-	dest := numericPad['A']
-	diffX := dest.x - current.x
-	diffY := dest.y - current.y
-
-	for i := 0; i < abs(diffX); i++ {
-		if diffX < 0 {
-			sequence = append(sequence, "<")
-		} else {
-			sequence = append(sequence, ">")
-		}
-	}
-
-	for i := 0; i < abs(diffY); i++ {
-		if diffY < 0 {
-			sequence = append(sequence, "v")
-		} else {
-			sequence = append(sequence, "^")
-		}
-	}
-
-	return sequence
-}
-
-func getDirectionalPadSequence(input []string) []string {
-	var sequence []string
-	current := Coordinate{2, 0} // Start at 'A'
-
-	for _, move := range input {
-		var target rune
-		switch move {
-		case "^":
-			target = '^'
-		case "v":
-			target = 'v'
-		case "<":
-			target = '<'
-		case ">":
-			target = '>'
-		case "A":
-			target = 'A'
-		}
-
-		dest := directionalPad[target]
-		diffX := dest.x - current.x
-		diffY := dest.y - current.y
-
-		// Prioritize horizontal movement for < and >
-		if target == '<' || target == '>' {
-			// Add horizontal movements
-			for i := 0; i < abs(diffX); i++ {
-				if diffX < 0 {
-					sequence = append(sequence, "<")
-				} else {
-					sequence = append(sequence, ">")
-				}
-			}
-			// Add vertical movements
-			for i := 0; i < abs(diffY); i++ {
-				if diffY < 0 {
-					sequence = append(sequence, "v")
-				} else {
-					sequence = append(sequence, "^")
-				}
-			}
-		} else {
-			// For other buttons, prioritize vertical movement
-			for i := 0; i < abs(diffY); i++ {
-				if diffY < 0 {
-					sequence = append(sequence, "v")
-				} else {
-					sequence = append(sequence, "^")
-				}
-			}
-			for i := 0; i < abs(diffX); i++ {
-				if diffX < 0 {
-					sequence = append(sequence, "<")
-				} else {
-					sequence = append(sequence, ">")
-				}
-			}
-		}
-
-		sequence = append(sequence, "A")
-		current = dest
-	}
-
-	return sequence
-}
-
-func getSequenceLength(input []string, maxLayers, currentLayer int, cache map[string][]int) int {
-	key := strings.Join(input, "")
-
-	// Check cache
-	if val, ok := cache[key]; ok && val[currentLayer-1] != 0 {
-		return val[currentLayer-1]
-	}
-
-	// Ensure cache entry exists
-	if _, ok := cache[key]; !ok {
-		cache[key] = make([]int, maxLayers)
-	}
-
-	// Get sequence for current layer
-	seq := getDirectionalPadSequence(input)
-	cache[key][0] = len(seq)
-
-	if currentLayer == maxLayers {
-		return len(seq)
-	}
-
-	// Split sequence into individual button presses
-	var total int
-	current := []string{}
-	for _, move := range seq {
-		current = append(current, move)
-		if move == "A" {
-			total += getSequenceLength(current, maxLayers, currentLayer+1, cache)
-			current = []string{}
-		}
-	}
-
-	cache[key][currentLayer-1] = total
 	return total
 }
 
-func getNumericValue(code string) int {
-	code = strings.TrimSuffix(code, "A")
-	code = strings.TrimLeft(code, "0")
-
-	if code == "" {
-		return 0
-	}
-
-	value, err := strconv.Atoi(code)
-	if err != nil {
-		fmt.Printf("Error parsing numeric value from code '%s': %v\n", code, err)
-		return 0
-	}
-	return value
+type MovementPair struct {
+	from, to string
 }
 
-func abs(x int) int {
-	if x < 0 {
-		return -x
+var (
+	locX = map[string]int{
+		"7": 0, "8": 0, "9": 0,
+		"4": 1, "5": 1, "6": 1,
+		"1": 2, "2": 2, "3": 2,
+		"#": 3, "^": 3, "A": 3,
+		"<": 4, "v": 4, ">": 4,
 	}
-	return x
-}
-
-func readInputFile(location string) []string {
-	file, err := os.Open(location)
-	if err != nil {
-		fmt.Println("Error opening file:", err)
-		os.Exit(2)
+	locY = map[string]int{
+		"7": 0, "8": 1, "9": 2,
+		"4": 0, "5": 1, "6": 2,
+		"1": 0, "2": 1, "3": 2,
+		"#": 0, "^": 1, "A": 2,
+		"<": 0, "v": 1, ">": 2,
 	}
-	defer file.Close()
+)
 
-	var codes []string
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line != "" {
-			codes = append(codes, line)
+func generatePairs() []MovementPair {
+	options := []string{"A", "^", "<", "v", ">"}
+	var pairs []MovementPair
+	for _, x := range options {
+		for _, y := range options {
+			pairs = append(pairs, MovementPair{x, y})
 		}
 	}
+	return pairs
+}
 
-	return codes
+func findPairIndex(pairs []MovementPair, from, to string) int {
+	for i, p := range pairs {
+		if p.from == from && p.to == to {
+			return i
+		}
+	}
+	return -1
+}
+
+func bestPath(x1, y1, x2, y2 int) string {
+	var result strings.Builder
+
+	left := strings.Repeat("<", max(0, y1-y2))
+	right := strings.Repeat(">", max(0, y2-y1))
+	up := strings.Repeat("^", max(0, x1-x2))
+	down := strings.Repeat("v", max(0, x2-x1))
+
+	hashX := locX["#"]
+	hashY := locY["#"]
+
+	if hashX == min(x1, x2) && hashY == min(y1, y2) {
+		result.WriteString(down)
+		result.WriteString(right)
+		result.WriteString(up)
+		result.WriteString(left)
+	} else if hashX == max(x1, x2) && hashY == min(y1, y2) {
+		result.WriteString(up)
+		result.WriteString(right)
+		result.WriteString(down)
+		result.WriteString(left)
+	} else {
+		result.WriteString(left)
+		result.WriteString(down)
+		result.WriteString(up)
+		result.WriteString(right)
+	}
+
+	result.WriteString("A")
+	return result.String()
+}
+
+func createMatrix(pairs []MovementPair) [][]int {
+	n := len(pairs)
+	matrix := make([][]int, n)
+	for i := range matrix {
+		matrix[i] = make([]int, n)
+	}
+
+	for i, src := range pairs {
+		path := bestPath(locX[src.from], locY[src.from], locX[src.to], locY[src.to])
+		prev := "A"
+		for _, curr := range path {
+			currStr := string(curr)
+			idx := findPairIndex(pairs, prev, currStr)
+			if idx >= 0 {
+				matrix[i][idx]++
+			}
+			prev = currStr
+		}
+	}
+	return matrix
+}
+
+func multiplyMatrix(a, b [][]int) [][]int {
+	n := len(a)
+	result := make([][]int, n)
+	for i := range result {
+		result[i] = make([]int, n)
+	}
+
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			sum := 0
+			for k := 0; k < n; k++ {
+				sum += a[i][k] * b[k][j]
+			}
+			result[i][j] = sum
+		}
+	}
+	return result
+}
+
+func matrixPower(matrix [][]int, power int) [][]int {
+	if power == 1 {
+		return matrix
+	}
+	if power%2 == 0 {
+		half := matrixPower(matrix, power/2)
+		return multiplyMatrix(half, half)
+	}
+	return multiplyMatrix(matrix, matrixPower(matrix, power-1))
+}
+
+func solveString(code string, depth int) int {
+	if depth == 0 {
+		return len(code)
+	}
+
+	code = strings.ReplaceAll(code, "0", "^")
+	pairs := generatePairs()
+	matrix := createMatrix(pairs)
+
+	powMatrix := matrixPower(matrix, depth-1)
+
+	n := len(pairs)
+	vector := make([]int, n)
+	for i := range vector {
+		vector[i] = 1
+	}
+
+	fastestPairs := make([]int, n)
+	for i := 0; i < n; i++ {
+		sum := 0
+		for j := 0; j < n; j++ {
+			sum += powMatrix[i][j] * vector[j]
+		}
+		fastestPairs[i] = sum
+	}
+
+	result := 0
+	prev := "A"
+	for _, curr := range code {
+		currStr := string(curr)
+		path := bestPath(locX[prev], locY[prev], locX[currStr], locY[currStr])
+
+		pathPrev := "A"
+		for _, move := range path {
+			moveStr := string(move)
+			idx := findPairIndex(pairs, pathPrev, moveStr)
+			if idx >= 0 {
+				result += fastestPairs[idx]
+			}
+			pathPrev = moveStr
+		}
+		prev = currStr
+	}
+
+	return result
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
