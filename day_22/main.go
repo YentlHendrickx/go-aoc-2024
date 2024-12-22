@@ -46,6 +46,7 @@ func solve(location string) (int, int) {
 	}
 
 	var changes []map[Consecutive]int = make([]map[Consecutive]int, len(nums))
+	var possibleSequences map[Consecutive]int = make(map[Consecutive]int)
 	for index, sequence := range sequences {
 		changes[index] = make(map[Consecutive]int)
 		for i := 1; i < len(sequence)-3; i++ {
@@ -53,41 +54,21 @@ func solve(location string) (int, int) {
 
 			if _, found := changes[index][consecutive]; !found {
 				changes[index][consecutive] = sequence[i+3]
-			}
-		}
-	}
 
-	// Build up each unique 4 number sequence that is possible, a sequence can be from -9 to 9 and is 4 numbers
-	// This is a brute force solution, but it works for the given input
-	var possibleSequences []Consecutive
-	for i := -9; i <= 9; i++ {
-		for j := -9; j <= 9; j++ {
-			for k := -9; k <= 9; k++ {
-				for l := -9; l <= 9; l++ {
-					// If all 4 are negative, skip
-					if i < 0 && j < 0 && k < 0 && l < 0 {
-						continue
-					}
-
-					possibleSequences = append(possibleSequences, Consecutive{i, j, k, l})
+				if _, found := possibleSequences[consecutive]; !found {
+					possibleSequences[consecutive] = sequence[i+3]
+				} else {
+					possibleSequences[consecutive] = possibleSequences[consecutive] + sequence[i+3]
 				}
 			}
 		}
 	}
 
 	var maxRes int
-	for _, sequence := range possibleSequences {
+	for sequence := range possibleSequences {
 		var res int
-		for index, change := range changes {
-			// Impossible solution
-			if res+(len(changes)-index)*9 < maxRes {
-				break
-			}
 
-			if val, found := change[sequence]; found {
-				res += val
-			}
-		}
+		res += possibleSequences[sequence]
 
 		if res > maxRes {
 			maxRes = res
