@@ -17,7 +17,8 @@ func main() {
 }
 
 func solvePart(location string) {
-	one, two := solve(location)
+	var memo map[int]int = make(map[int]int)
+	one, two := solve(location, memo)
 	fmt.Println("Part 1:", one)
 	fmt.Println("Part 2:", two)
 }
@@ -29,13 +30,11 @@ type Consecutive struct {
 	n4 int
 }
 
-func solve(location string) (int, int) {
+func solve(location string, memo map[int]int) (int, int) {
 	nums := readInputFile(location)
 	resOne := 0
 
 	var sequences [][]int = make([][]int, len(nums))
-
-	var memo map[int]int = make(map[int]int)
 
 	for index, num := range nums {
 		inter := num
@@ -56,6 +55,7 @@ func solve(location string) (int, int) {
 
 	var changes []map[Consecutive]int = make([]map[Consecutive]int, len(nums))
 	var possibleSequences map[Consecutive]int = make(map[Consecutive]int)
+	var maxRes int
 	for index, sequence := range sequences {
 		changes[index] = make(map[Consecutive]int)
 		for i := 1; i < len(sequence)-3; i++ {
@@ -67,25 +67,17 @@ func solve(location string) (int, int) {
 				if _, found := possibleSequences[consecutive]; !found {
 					possibleSequences[consecutive] = sequence[i+3]
 				} else {
-					possibleSequences[consecutive] = possibleSequences[consecutive] + sequence[i+3]
+					newSeq := possibleSequences[consecutive] + sequence[i+3]
+					if newSeq > maxRes {
+						maxRes = newSeq
+					}
+					possibleSequences[consecutive] = newSeq
 				}
 			}
 		}
 	}
 
-	var maxRes int
-	for sequence := range possibleSequences {
-		var res int
-
-		res += possibleSequences[sequence]
-
-		if res > maxRes {
-			maxRes = res
-		}
-	}
-	resTwo := maxRes
-
-	return resOne, resTwo
+	return resOne, maxRes
 }
 
 func evolve(number int) int {
