@@ -17,8 +17,7 @@ func main() {
 }
 
 func solvePart(location string) {
-	var memo map[int]int = make(map[int]int)
-	one, two := solve(location, memo)
+	one, two := solve(location)
 	fmt.Println("Part 1:", one)
 	fmt.Println("Part 2:", two)
 }
@@ -30,10 +29,11 @@ type Consecutive struct {
 	n4 int
 }
 
-func solve(location string, memo map[int]int) (int, int) {
+func solve(location string) (int, int) {
 	nums := readInputFile(location)
 	resOne := 0
 
+	var memo map[int]int = make(map[int]int)
 	var sequences [][]int = make([][]int, len(nums))
 
 	for index, num := range nums {
