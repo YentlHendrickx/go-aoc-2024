@@ -35,10 +35,19 @@ func solve(location string) (int, int) {
 
 	var sequences [][]int = make([][]int, len(nums))
 
+	var memo map[int]int = make(map[int]int)
+
 	for index, num := range nums {
 		inter := num
 		for i := 0; i < 2000; i++ {
-			inter = evolve(inter)
+			if _, found := memo[inter]; found {
+				inter = memo[inter]
+			} else {
+				sol := evolve(inter)
+				memo[inter] = sol
+				inter = sol
+			}
+
 			sequences[index] = append(sequences[index], inter%10)
 		}
 
